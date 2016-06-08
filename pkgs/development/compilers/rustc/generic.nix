@@ -37,7 +37,18 @@ let version = if isRelease then
 
     procps = if stdenv.isDarwin then darwin.ps else args.procps;
 
-    llvmShared = llvm.override { enableSharedLibraries = true; };
+    onArm = stdenv.system == "armv7l-linux";
+
+    llvmShared =
+      let
+        llvm' = llvm.override { enableSharedLibraries = true; };
+      in if onArm
+        then stdenv.lib.overrideDerivation llvm' (o: {
+          enableParallelBuilding = false;
+          doCheck = false;
+          cmakeFlags = o.cmakeFlags ++ [ "-DLLVM_BUILD_TESTS=OFF" "-DLLVM_TARGETS_TO_BUILD=ARM" ];
+        })
+        else llvm';
 
     platform = if stdenv.system == "i686-linux"
       then "linux-i386"
@@ -75,8 +86,13 @@ let version = if isRelease then
       then snapshotHashDarwin686
       else if stdenv.system == "x86_64-darwin"
       then snapshotHashDarwin64
+      else if onArm
+      then "aa4102cd6eb3879cb9eaeb9bb287b60659c3e312"
       else abort "no snapshot for platform ${stdenv.system}";
     snapshotName = "rust-stage0-${snapshotDate}-${snapshotRev}-${platform}-${snapshotHash}.tar.bz2";
+    snapshotUrl = if onArm
+      then "https://www.dropbox.com/sh/ewam0qujfdfaf19/AAAnL3rVJmRwUB2DIP9Bqh5aa/ARMv7/snapshots/rust-stage0-2016-03-18-235d774-linux-arm-aa4102cd6eb3879cb9eaeb9bb287b60659c3e312.tar.bz2?dl=1"
+      else "http://static.rust-lang.org/stage0-snapshots/${snapshotName}";
 in
 
 with stdenv.lib; stdenv.mkDerivation {
@@ -104,7 +120,7 @@ with stdenv.lib; stdenv.mkDerivation {
   snapshot = stdenv.mkDerivation {
     name = "rust-stage0";
     src = fetchurl {
-      url = "http://static.rust-lang.org/stage0-snapshots/${snapshotName}";
+      url = snapshotUrl;
       sha1 = snapshotHash;
     };
     dontStrip = true;
@@ -112,7 +128,7 @@ with stdenv.lib; stdenv.mkDerivation {
       mkdir -p "$out"
       cp -r bin "$out/bin"
     '' + optionalString stdenv.isLinux ''
-      patchelf --interpreter "${stdenv.glibc.out}/lib/${stdenv.cc.dynamicLinker}" \
+      patchelf --interpreter "$(cat ${stdenv.cc}/nix-support/dynamic-linker)" \
                --set-rpath "${stdenv.cc.cc.lib}/lib/:${stdenv.cc.cc.lib}/lib64/" \
                "$out/bin/rustc"
     '';
@@ -172,5 +188,5 @@ with stdenv.lib; stdenv.mkDerivation {
 
   preCheck = "export TZDIR=${tzdata}/share/zoneinfo";
 
-  doCheck = true;
+  doCheck = !onArm;
 }

@@ -18,15 +18,21 @@ let snapshotHash = if stdenv.system == "i686-linux"
       then "4d84d31449a5926f9e7ceb344540d6e5ea530b88"
       else if stdenv.system == "x86_64-darwin"
       then "f8baef5b0b3e6f9825be1f1709594695ac0f0abc"
+      else if onArm
+      then "aa133041997d7dd7cb97a159c964308df5644d64"
       else throw "no snapshot for platform ${stdenv.system}";
     snapshotName = "cargo-nightly-${platform}.tar.gz";
+    snapshotUrl = if onArm
+      then "https://www.dropbox.com/sh/ewam0qujfdfaf19/AABV2xcEXf-5812XxAk-I9m7a/ARMv7/1.9.0-beta/cargo-0.11.0-beta-2016-04-21-867627c-arm-unknown-linux-gnueabihf-aa133041997d7dd7cb97a159c964308df5644d64.tar.gz?dl=1"
+      else "https://static-rust-lang-org.s3.amazonaws.com/cargo-dist/${snapshotDate}/${snapshotName}";
+    onArm = stdenv.system == "armv7l-linux";
 in
 
-stdenv.mkDerivation {
+stdenv.mkDerivation ({
   inherit name version meta passthru;
 
   src = fetchurl {
-    url = "https://static-rust-lang-org.s3.amazonaws.com/cargo-dist/${snapshotDate}/${snapshotName}";
+    url = snapshotUrl;
     sha1 = snapshotHash;
   };
 
@@ -46,10 +52,10 @@ stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p "$out"
-    ./install.sh "--prefix=$out"
+    ${if onArm then ''cp -r * "$out"'' else ''./install.sh "--prefix=$out"''}
   '' + (if stdenv.isLinux then ''
-    patchelf --interpreter "${stdenv.glibc.out}/lib/${stdenv.cc.dynamicLinker}" \
+    patchelf --interpreter "$(cat ${stdenv.cc}/nix-support/dynamic-linker)" \
              --set-rpath "${stdenv.cc.cc.lib}/lib/:${stdenv.cc.cc.lib}/lib64/:${zlib.out}/lib" \
              "$out/bin/cargo"
   '' else "") + postInstall;
-}
+} // (if onArm then { sourceRoot = "."; } else {}))
