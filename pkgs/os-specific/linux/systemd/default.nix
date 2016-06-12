@@ -4,6 +4,7 @@
 , kexectools, libmicrohttpd, linuxHeaders ? stdenv.cc.libc.linuxHeaders, libseccomp
 , iptables, gnu-efi
 , autoreconfHook, gettext, docbook_xsl, docbook_xml_dtd_42, docbook_xml_dtd_45
+, system
 , enableKDbus ? false
 }:
 
@@ -80,7 +81,8 @@ stdenv.mkDerivation rec {
       "--with-sysvinit-path="
       "--with-sysvrcnd-path="
       "--with-rc-local-script-path-stop=/etc/halt.local"
-    ] ++ (if enableKDbus then [ "--enable-kdbus" ] else [ "--disable-kdbus" ]);
+    ] ++ (if enableKDbus then [ "--enable-kdbus" ] else [ "--disable-kdbus" ])
+      ++ stdenv.lib.optional (system == "armv7l-linux") "--disable-gnuefi";
 
   preConfigure =
     ''
