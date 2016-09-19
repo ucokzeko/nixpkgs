@@ -13,11 +13,12 @@ let local = config.openblas.preferLocalBuild or false;
       { i686-linux = "32";
         x86_64-linux = "64";
         x86_64-darwin = "64";
+        armv7l-linux = "32";
       }."${stdenv.system}" or (throw "unsupported system: ${stdenv.system}");
     genericFlags =
-      [ "DYNAMIC_ARCH=1"
-        "NUM_THREADS=64"
-      ];
+      optionals (!stdenv.isArm) [ "DYNAMIC_ARCH=1" ]
+      ++
+      [ "NUM_THREADS=64" ];
     localFlags = config.openblas.flags or
       optionals (hasAttr "target" config.openblas) [ "TARGET=${config.openblas.target}" ];
     blas64 = if blas64_ != null then blas64_ else hasPrefix "x86_64" stdenv.system;
