@@ -2778,6 +2778,8 @@ in
 
   olsrd = callPackage ../tools/networking/olsrd { };
 
+  openzwave = callPackage ../development/libraries/openzwave { };
+
   ossec = callPackage ../tools/security/ossec {};
 
   ostree = callPackage ../tools/misc/ostree { };
