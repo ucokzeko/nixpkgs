@@ -7,7 +7,7 @@ stdenv.mkDerivation {
     owner = "domoticz";
     repo = "domoticz";
     rev = "6fdf902ea89c835a338c9aadcf8dd26c4b7a6242";
-    sha256 = "0h6lc3hg5ha0g4q91v1q23hsa67kyr3r0x2ag5k0rdxkv8k9fdf8";
+    sha256 = "0k27qq5vibyjm323kggy7zl4wkqby3w5b6zi5sip1mk7fnknmjjs";
   };
 
   buildInputs = [ cmake boost zlib curl git openzwave libudev pkgconfig ];
